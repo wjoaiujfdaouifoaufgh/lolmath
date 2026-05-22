@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>lolmath — viewer</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: #111;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Top navbar ── */
+  .navbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.2rem;
+    height: 44px;
+    min-height: 44px;
+    background: #1a1a1a;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    z-index: 10;
+    gap: 1rem;
+  }
+
+  /* left: logo + game name */
+  .nav-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-width: 0;
+  }
+  .nav-logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.02em;
+    text-decoration: none;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .nav-divider {
+    width: 1px;
+    height: 18px;
+    background: rgba(255,255,255,0.15);
+    flex-shrink: 0;
+  }
+  .nav-game-name {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: rgba(255,255,255,0.65);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* right: action buttons */
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+  }
+  .nav-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.75rem;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.75);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+  .nav-btn:hover {
+    background: rgba(255,255,255,0.13);
+    color: #fff;
+  }
+  .nav-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+
+  /* home button slightly distinct */
+  .nav-btn.home {
+    border-color: rgba(78,203,113,0.25);
+    color: rgba(78,203,113,0.85);
+  }
+  .nav-btn.home:hover {
+    background: rgba(78,203,113,0.12);
+    color: #4ecb71;
+  }
+
+  /* ── Game iframe ── */
+  .game-frame {
+    flex: 1;
+    border: none;
+    width: 100%;
+    display: block;
+    background: #000;
+  }
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-left">
+    <a class="nav-logo" href="index.html">lolmath</a>
+    <div class="nav-divider"></div>
+    <div class="nav-game-name" id="gameName">Loading...</div>
+  </div>
+
+  <div class="nav-right">
+    <button class="nav-btn" onclick="reloadGame()" title="Reload">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+      </svg>
+      Reload
+    </button>
+    <button class="nav-btn" onclick="toggleFullscreen()" title="Fullscreen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
+        <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
+      </svg>
+      Fullscreen
+    </button>
+    <button class="nav-btn" onclick="focusFrame()" title="Focus">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/><path d="M2 12s4-8 10-8 10 8 10 8-4 8-10 8-10-8-10-8z"/>
+      </svg>
+      Focus
+    </button>
+    <a class="nav-btn home" href="index.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+      Home
+    </a>
+  </div>
+</nav>
+
+<iframe class="game-frame" id="gameFrame" allowfullscreen allow="fullscreen"></iframe>
+
+<script>
+  const params   = new URLSearchParams(window.location.search);
+  const gameId   = params.get('game');
+  const gameName = params.get('name') || 'Game';
+
+  document.getElementById('gameName').textContent = decodeURIComponent(gameName);
+  document.title = `lolmath — ${decodeURIComponent(gameName)}`;
+
+  if (gameId) {
+    document.getElementById('gameFrame').src = `${gameId}.html`;
+  } else {
+    document.getElementById('gameName').textContent = 'Game not found';
+  }
+
+  function reloadGame() {
+    const f = document.getElementById('gameFrame');
+    f.src = f.src;
+  }
+
+  function toggleFullscreen() {
+    const f = document.getElementById('gameFrame');
+    if (f.requestFullscreen)            f.requestFullscreen();
+    else if (f.webkitRequestFullscreen) f.webkitRequestFullscreen();
+  }
+
+  function focusFrame() {
+    document.getElementById('gameFrame').focus();
+  }
+</script>
+</body>
+</html>
